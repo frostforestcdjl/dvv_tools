@@ -4,12 +4,12 @@ A collection of tools for downloading seismic data, plotting cross-correlation f
 
 ## 0. Download Seismic Data
 
-1. Place `download_data_italy.sh` in an empty folder. Make sure at least **1 TB of free disk space** is available.
+1. Place `00_download_data_italy.sh` in an empty folder. Make sure at least **1 TB of free disk space** is available.
 
 2. Run:
 
    ```bash
-   sh download_data_italy.sh
+   sh 00_download_data_italy.sh
    ```
 
 3. Have a cup of coffee ☕ and wait approximately **20–30 hours** for the download to finish.
@@ -39,6 +39,6 @@ python 01_plot_ccfs_zarr.py
 
 Download the Jupyter notebook:
 
-`load_dt_plot_dvv.ipynb`
+`02_load_dt_plot_dvv.ipynb`
 
 Open and run the notebook to load data from the `DTT` folder and plot the dv/v results.
