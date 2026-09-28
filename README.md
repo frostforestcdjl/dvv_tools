@@ -14,7 +14,7 @@ A collection of tools for downloading seismic data, plotting cross-correlation f
 
 3. Have a cup of coffee ☕ and wait approximately **20–30 hours** for the download to finish.
 
-After processing the downloaded data with **MSNoise**, you should have a `DTT` folder containing the dv/v results.
+After processing the downloaded data with **MSNoise**, you should have `STACKS`, `MWCS`, and `DTT` folder containing the dv/v results.
 
 ## 1. Plot CCFs from MiniSEED or Zarr Files
 
