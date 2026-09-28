@@ -1,9 +1,44 @@
-# download_data_italy
-Download seismic data from Italy
+# dv/v Tools
 
-Step 1. Put download_data_italy.sh to an empty folder, and make sure you have 1 TB available space with the folder.<br>
-Step 2. Run "sh download_data_italy.sh"<br>
-Step 3. Have a cup of coffee, and wait 20 to 30 hours until the download process is finished.<br>
+A collection of tools for downloading seismic data, plotting cross-correlation functions (CCFs), and visualizing dv/v results.
 
-After processing data with MSNoise, you'll get a folder "DTT".<br>
-If you want to load data from DTT and plot dv/v, you can download "load_dt_plot_dvv.ipynb" and run the script.
+## 0. Download Seismic Data
+
+1. Place `download_data_italy.sh` in an empty folder. Make sure at least **1 TB of free disk space** is available.
+
+2. Run:
+
+   ```bash
+   sh download_data_italy.sh
+   ```
+
+3. Have a cup of coffee ☕ and wait approximately **20–30 hours** for the download to finish.
+
+After processing the downloaded data with **MSNoise**, you should have a `DTT` folder containing the dv/v results.
+
+## 1. Plot CCFs from MiniSEED or Zarr Files
+
+Depending on your data format, download one of the following scripts:
+
+- `01_plot_ccfs_mseed.py` — for MiniSEED files
+- `01_plot_ccfs_zarr.py` — for Zarr files
+
+Place the script in the same folder as `STACKS`, then run it with Python. For example:
+
+```bash
+python 01_plot_ccfs_mseed.py
+```
+
+or:
+
+```bash
+python 01_plot_ccfs_zarr.py
+```
+
+## 2. Load DTT Data and Plot dv/v
+
+Download the Jupyter notebook:
+
+`load_dt_plot_dvv.ipynb`
+
+Open and run the notebook to load data from the `DTT` folder and plot the dv/v results.
