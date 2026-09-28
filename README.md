@@ -18,7 +18,7 @@ After processing the downloaded data with **MSNoise**, you should have `STACKS`,
 
 ## 1. Plot CCFs from MiniSEED or Zarr Files
 
-Depending on your data format, download one of the following scripts:
+Depending on your data format in `STACKS`, download one of the following scripts:
 
 - `01_plot_ccfs_mseed.py` — for MiniSEED files
 - `01_plot_ccfs_zarr.py` — for Zarr files
