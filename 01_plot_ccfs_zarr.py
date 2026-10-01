@@ -18,27 +18,32 @@ def get_dirs(folder):
 def load_ccf_zfile(pair_list):
     z_file = zarr.open(pair_list, mode='r')
 
-    date = z_file['date'][:]
-    data = z_file['data'][:]
-    reference = z_file['reference'][:]
-
     try:
-        date_dt_cctorch = [datetime.strptime(str(d), '%Y%m%d') for d in date]
-    except:
-        date_dt_cctorch = [datetime.strptime(str(d), '%Y%j') for d in date]
+        date = z_file['date'][:]
+        data = z_file['data'][:]
+        reference = z_file['reference'][:]
+    
+        try:
+            date_dt_cctorch = [datetime.strptime(str(d), '%Y%m%d') for d in date]
+        except:
+            date_dt_cctorch = [datetime.strptime(str(d), '%Y%j') for d in date]
+    
+        CCF_dic_cctorch = {d: data[i] for i, d in enumerate(date_dt_cctorch)}
+    
+        npts = data.shape[1]
+        t_cctorch = (np.arange(npts) - npts // 2) / 20
+    
+        vmin = np.min(data)
+        vmax = np.max(data)
+        vmax_cctorch = max(abs(vmin), abs(vmax))
+    
+        print(f"CCF_dic_cctorch length: {len(CCF_dic_cctorch)}, t_cctorch length: {len(t_cctorch)}, vmin: {vmin}, vmax: {vmax}, vmax_cctorch: {vmax_cctorch}")
 
-    CCF_dic_cctorch = {d: data[i] for i, d in enumerate(date_dt_cctorch)}
+        return date_dt_cctorch, CCF_dic_cctorch, t_cctorch, vmax_cctorch, reference
 
-    npts = data.shape[1]
-    t_cctorch = (np.arange(npts) - npts // 2) / 20
-
-    vmin = np.min(data)
-    vmax = np.max(data)
-    vmax_cctorch = max(abs(vmin), abs(vmax))
-
-    print(f"CCF_dic_cctorch length: {len(CCF_dic_cctorch)}, t_cctorch length: {len(t_cctorch)}, vmin: {vmin}, vmax: {vmax}, vmax_cctorch: {vmax_cctorch}")
-
-    return date_dt_cctorch, CCF_dic_cctorch, t_cctorch, vmax_cctorch, reference
+    except Exception as e:
+        print(f"Error loading {pair_list}: {e}")
+        return None, None, None, None, None
 
 def build_daily_grid(date_dt_cctorch, CCF_dic_cctorch, npts):
     """Resample onto a fully-populated calendar-day grid (missing days = NaN).
