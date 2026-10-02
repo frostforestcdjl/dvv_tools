@@ -1,11 +1,20 @@
 #!/bin/bash
 
 # =========================
+# Check arguments
+# =========================
+if [ $# -lt 1 ]; then
+    echo "Usage: $0 <project>"
+    echo "Example: $0 M5eq_1"
+    exit 1
+fi
+
+# =========================
 # Parameters
 # =========================
 node_rank=0
 num_nodes=1
-project="M5eq_1"
+project="$1"
 filterid_mwcs=1
 components=(EE EN EZ NE NN NZ ZE ZN ZZ)
 
@@ -41,5 +50,6 @@ done
 
 echo "========================================"
 echo "All components finished successfully!"
+echo "Project: $project"
 echo "Time: $(date)"
 echo "========================================"
