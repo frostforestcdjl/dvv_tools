@@ -116,6 +116,7 @@ for filter_name in filter_list:
             pair_list = get_dirs(pair_folder_root)
 
             for pair in pair_list:
+                print(f"Ploting with {filter_name} | {stack_day} | {component} | {pair}")
                 pair_folder = os.path.join(pair_folder_root, pair)
                 station_pair = pair
                 ref_path = os.path.join(filter_folder, 'REF', component, f"{station_pair}.MSEED")
