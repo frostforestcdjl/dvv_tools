@@ -3,11 +3,24 @@ import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 import numpy as np
 from obspy import read
+from msnoise.api import connect, get_filters
 
-mwcs_low_dic = {1:0.1}
-mwcs_high_dic = {1:0.9}
+# --- 1. Retrive msnoise database to get filters ---
+db = connect()
+filters = get_filters(db, all=True)
+
+mwcs_low_dic = {f.ref: f.mwcs_low for f in filters}
+mwcs_high_dic = {f.ref: f.mwcs_high for f in filters}
+
+db.close()
+
+print("mwcs_low_dic =", mwcs_low_dic)
+print("mwcs_high_dic =", mwcs_high_dic)
+
+# --- 2. Calarbar Setting ---
 v_max_rescale_list = [0.01, 0.1, 0.5, 1, 10]
 
+# --- 3. Functions ---
 def get_dirs(folder):
     return [
         name for name in os.listdir(folder)
@@ -100,8 +113,7 @@ def plot_ccf_mseed(date_dt_cctorch, CCF_dic_cctorch, t_cctorch, vmax_cctorch, re
         # plt.show()
 
 
-
-
+# --- 4. Setting and Running for Plot ---
 stack_folder = 'STACKS'
 filter_list = get_dirs(stack_folder)
 
