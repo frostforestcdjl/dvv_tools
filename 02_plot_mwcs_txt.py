@@ -42,8 +42,9 @@ cmap_mwcs = LinearSegmentedColormap.from_list(
 # key: column index in txt file (0 = lag-time window)
 # symmetric=True  -> colorbar is [-vlim, vlim] centered at 0, vlim taken directly from 'v_lim_list' (diverging cmap)
 # symmetric=False -> colorbar is [vmin, vmin + (vmax - vmin) * rescale], rescale from 'v_max_rescale_list' (sequential cmap)
+# swap=True       -> also plot a version with x (Date) and y (Lag-Time) swapped, saved as *_swap_*.png
 column_setting = {
-    1: {'name': 'delay',     'label': 'Delay (s)',      'cmap': cmap_mwcs, 'symmetric': True,  'v_lim_list': [0.1, 0.2, 0.5, 1, 2]},
+    1: {'name': 'delay',     'label': 'Delay (s)',      'cmap': cmap_mwcs, 'symmetric': True,  'v_lim_list': [0.1, 0.2, 0.5, 1, 2], 'swap': True},
     2: {'name': 'error',     'label': 'Error (s)',      'cmap': 'viridis', 'symmetric': False, 'v_max_rescale_list': [0.1, 0.5, 1]},
     3: {'name': 'coherence', 'label': 'Mean Coherence', 'cmap': 'viridis', 'symmetric': False, 'v_max_rescale_list': [1]},
 }
@@ -120,24 +121,39 @@ def plot_mwcs_txt(date_dt_mwcs, MWCS_dic, t_mwcs, station_pair, filter_name, com
                 norm = plt.Normalize(vmin=vmin_data, vmax=vmin_data + (vmax_data - vmin_data) * v)
                 extend = 'neither'
 
-            fig, ax_mesh = plt.subplots(1, 1, figsize=(14, 4), constrained_layout=True)
+            swap_list = [False, True] if setting.get('swap', False) else [False]
+            for swap in swap_list:
+                if not swap:
+                    # x: Date, y: Lag-Time
+                    fig, ax_mesh = plt.subplots(1, 1, figsize=(14, 4), constrained_layout=True)
+                    mesh = ax_mesh.pcolormesh(all_days, t_mwcs, grid.T, cmap=setting['cmap'], shading='auto',
+                                              norm=norm)
+                    ax_mesh.set_xlim([date_dt_mwcs[0], date_dt_mwcs[-1]])
+                    ax_mesh.set_ylim([t_mwcs[0], t_mwcs[-1]])
+                    ax_mesh.set_xlabel('Date', fontsize=16)
+                    ax_mesh.set_ylabel('Lag-Time (s)', fontsize=16)
+                    fig_name = f"{station_pair}_{setting['name']}_{v}.png"
+                else:
+                    # x: Lag-Time, y: Date
+                    fig, ax_mesh = plt.subplots(1, 1, figsize=(8, 10), constrained_layout=True)
+                    mesh = ax_mesh.pcolormesh(t_mwcs, all_days, grid, cmap=setting['cmap'], shading='auto',
+                                              norm=norm)
+                    ax_mesh.set_xlim([t_mwcs[0], t_mwcs[-1]])
+                    ax_mesh.set_ylim([date_dt_mwcs[0], date_dt_mwcs[-1]])
+                    ax_mesh.set_xlabel('Lag-Time (s)', fontsize=16)
+                    ax_mesh.set_ylabel('Date', fontsize=16)
+                    fig_name = f"{station_pair}_{setting['name']}_swap_{v}.png"
 
-            mesh = ax_mesh.pcolormesh(all_days, t_mwcs, grid.T, cmap=setting['cmap'], shading='auto',
-                                      norm=norm)
-            cbar = fig.colorbar(mesh, ax=ax_mesh, pad=0.01, extend=extend)
-            cbar.set_label(setting['label'], fontsize=14)
-            cbar.ax.tick_params(labelsize=12)
+                cbar = fig.colorbar(mesh, ax=ax_mesh, pad=0.01, extend=extend)
+                cbar.set_label(setting['label'], fontsize=14)
+                cbar.ax.tick_params(labelsize=12)
 
-            ax_mesh.tick_params(axis='both', labelsize=14)
-            ax_mesh.set_xlim([date_dt_mwcs[0], date_dt_mwcs[-1]])
-            ax_mesh.set_ylim([t_mwcs[0], t_mwcs[-1]])
-            ax_mesh.set_xlabel('Date', fontsize=16)
-            ax_mesh.set_ylabel('Lag-Time (s)', fontsize=16)
-            ax_mesh.set_title(f"MWCS {setting['name']} ({station_pair}, {mwcs_low_dic[filter_name]}-{mwcs_high_dic[filter_name]} Hz) [{component}]")
+                ax_mesh.tick_params(axis='both', labelsize=14)
+                ax_mesh.set_title(f"MWCS {setting['name']} ({station_pair}, {mwcs_low_dic[filter_name]}-{mwcs_high_dic[filter_name]} Hz) [{component}]")
 
-            plt.savefig(f"{save_path}/{station_pair}_{setting['name']}_{v}.png", dpi=300)
-            plt.close()
-            # plt.show()
+                plt.savefig(f"{save_path}/{fig_name}", dpi=300)
+                plt.close()
+                # plt.show()
 
 
 # --- 5. Setting and Running for Plot ---
