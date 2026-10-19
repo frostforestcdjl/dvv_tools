@@ -6,13 +6,17 @@ from obspy import read
 from msnoise.api import connect, get_filters
 
 # --- 1. Retrive msnoise database to get filters ---
-db = connect()
-filters = get_filters(db, all=True)
+try:
+    db = connect()
+    filters = get_filters(db, all=True)
 
-mwcs_low_dic = {f.ref: f.mwcs_low for f in filters}
-mwcs_high_dic = {f.ref: f.mwcs_high for f in filters}
+    mwcs_low_dic = {f.ref: f.mwcs_low for f in filters}
+    mwcs_high_dic = {f.ref: f.mwcs_high for f in filters}
 
-db.close()
+    db.close()
+except:
+    mwcs_low_dic = {1:0.1}
+    mwcs_high_dic = {1:0.9}
 
 print("mwcs_low_dic =", mwcs_low_dic)
 print("mwcs_high_dic =", mwcs_high_dic)
