@@ -1,8 +1,13 @@
 import os
 import numpy as np
 import pandas as pd
+
 from matplotlib import pyplot as plt
+from matplotlib.colors import Normalize
+from matplotlib.cm import ScalarMappable
+
 import argparse
+import ast
 
 plot_case_lst = ['M', 'M0']
 
@@ -10,19 +15,119 @@ plot_case_lst = ['M', 'M0']
 parser = argparse.ArgumentParser(description="Plot dv/v time series")
 
 parser.add_argument(
+    "--study_area",
+    required=True,
+    default="Study Region",
+    help="The region of plotting dv/v"
+)
+parser.add_argument(
     "--moving_average",
     type=int,
     required=True,
     help="Moving average window in days"
+)
+parser.add_argument(
+    "--event_list",
+    default="event_list.txt",
+    help="Path to event_list.txt (default: event_list.txt)"
+)
+parser.add_argument(
+    "--reverse_y",
+    default=False,
+    help="Reverse y-axis or not"
 )
 
 args = parser.parse_args()
 
 # --- Parameters ---
 project_path = '.'
-study_area = 'Parkfield_b2008'
+study_area = args.study_area
 moving_average = args.moving_average
+reverse_y = args.reverse_y
 
+# ========================================================
+# Read earthquake configuration
+# ========================================================
+
+def read_event_list(config_path):
+    config_path = os.path.abspath(config_path)
+    with open(config_path, "r", encoding="utf-8") as f:
+        tree = ast.parse(f.read(), filename=config_path)
+
+    values = {}
+
+    for node in tree.body:
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(node, ast.Assign) and isinstance(target, ast.Name):
+                    if target.id in ["event_file", "center_lat", "center_long"]:
+                        values[target.id] = ast.literal_eval(node.value)
+
+    required = {"event_file", "center_lat", "center_long"}
+
+    missing = required - values.keys()
+
+    if missing:
+        raise ValueError(f"Missing parameters in {config_path}: {sorted(missing)}")
+
+    event_file = os.path.expanduser(str(values["event_file"]))
+
+    if not os.path.isabs(event_file):
+        event_file = os.path.join(os.path.dirname(config_path), event_file)
+
+    center_lat = float(values["center_lat"])
+    center_long = float(values["center_long"])
+
+    return event_file, center_lat, center_long
+
+
+# ========================================================
+# Load earthquake catalog and calculate distances
+# ========================================================
+
+def load_event_catalog(event_file, center_lat, center_long):
+
+    # Read earthquake catalog
+    events = pd.read_csv(event_file)
+
+    # Earthquake coordinates
+    lat = np.deg2rad(pd.to_numeric(events["latitude"], errors="coerce"))
+    lon = np.deg2rad(pd.to_numeric(events["longitude"], errors="coerce"))
+
+    # Reference coordinates
+    lat0 = np.deg2rad(center_lat)
+    lon0 = np.deg2rad(center_long)
+
+    # Haversine formula
+    dlat = lat - lat0
+    dlon = lon - lon0
+
+    a = (
+        np.sin(dlat / 2)**2
+        + np.cos(lat0) * np.cos(lat) * np.sin(dlon / 2)**2
+    )
+
+    R = 6371.0  # Earth radius in km
+
+    distance = 2 * R * np.arcsin(np.sqrt(np.clip(a, 0, 1)))
+
+    # Add distance to catalog
+    events["distance_km"] = distance
+
+    # Extract information
+    event_time = pd.to_datetime(events["time"]).to_numpy()
+    event_distance = events["distance_km"].to_numpy()
+    event_place = events["place"].to_numpy()
+
+    return event_time, event_distance, event_place
+
+
+# ========================================================
+# Initialize earthquake catalog
+# ========================================================
+
+event_file, center_lat, center_long = read_event_list(args.event_list)
+event_pack = load_event_catalog(event_file, center_lat, center_long)
 
 def scan_files(project_path):
     files_set = set()
@@ -163,7 +268,7 @@ def load_msnoise_DVV(files_list, moving_average=30):
 
 def plot_dvv(study_area, plot_case, station_pair, date_lst,
              M_lst, M0_lst, M_lst_smooth, M0_lst_smooth,
-             moving_average, reverse_y=False, save_path=''):
+             moving_average, event_pack=(), reverse_y=False, save_path=''):
 
     fig, ax = plt.subplots(figsize=(12, 4))
 
@@ -193,6 +298,29 @@ def plot_dvv(study_area, plot_case, station_pair, date_lst,
             )
     else:
         raise ValueError("plot_case must be 'M' or 'M0'")
+
+    if event_pack:
+        event_time, event_distance, event_place = event_pack
+
+        # Distance color mapping
+        cmap = plt.get_cmap("gist_rainbow")
+        norm = Normalize(vmin=0, vmax=500)
+
+        for time, distance, place in zip(event_time, event_distance, event_place):
+
+            if not np.isfinite(distance):
+                continue
+
+            ax.axvline(time, color=cmap(norm(distance)), linestyle="--", linewidth=1, alpha=0.7, zorder=1)
+
+        # Distance colorbar
+        sm = ScalarMappable(
+            norm=norm,
+            cmap=cmap
+        )
+        sm.set_array([])
+
+        fig.colorbar(sm, ax=ax, label="Earthquake distance (km)", pad=0.02)
 
     ax.set_xlabel('Date')
     ax.set_ylabel('dv/v (%)')
@@ -264,7 +392,8 @@ for pair in pair_list:
             M_lst_smooth,
             M0_lst_smooth,
             moving_average,
-            reverse_y=True,
+            event_pack,
+            reverse_y=reverse_y,
             save_path=save_path
         )
 
@@ -296,6 +425,7 @@ if result is not None:
             M_lst_smooth,
             M0_lst_smooth,
             moving_average,
-            reverse_y=True,
+            event_pack,
+            reverse_y=reverse_y,
             save_path=save_path
         )
