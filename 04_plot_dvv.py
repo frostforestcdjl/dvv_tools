@@ -15,10 +15,10 @@ plot_case_lst = ['M', 'M0']
 parser = argparse.ArgumentParser(description="Plot dv/v time series")
 
 parser.add_argument(
-    "--study_area",
+    "--project_path",
     required=True,
-    default="Study Region",
-    help="The region of plotting dv/v"
+    default=".",
+    help="The path of the project containing DVV folder"
 )
 parser.add_argument(
     "--moving_average",
@@ -40,8 +40,7 @@ parser.add_argument(
 args = parser.parse_args()
 
 # --- Parameters ---
-project_path = '.'
-study_area = args.study_area
+project_path = args.project_path
 moving_average = args.moving_average
 reverse_y = args.reverse_y
 
@@ -266,7 +265,7 @@ def load_msnoise_DVV(files_list, moving_average=30):
 
     return date_lst, M_lst, M0_lst, M_lst_smooth, M0_lst_smooth
 
-def plot_dvv(study_area, plot_case, station_pair, date_lst,
+def plot_dvv(plot_case, station_pair, date_lst,
              M_lst, M0_lst, M_lst_smooth, M0_lst_smooth,
              moving_average, event_pack=(), reverse_y=False, save_path=''):
 
@@ -324,7 +323,7 @@ def plot_dvv(study_area, plot_case, station_pair, date_lst,
 
     ax.set_xlabel('Date')
     ax.set_ylabel('dv/v (%)')
-    ax.set_title(f'dv/v at {study_area} (Station Pair: {station_pair})')
+    ax.set_title(f'dv/v at {place} (Station Pair: {station_pair})')
 
     ax.set_xlim(date_lst[0], date_lst[-1])
 
@@ -353,7 +352,7 @@ def plot_dvv(study_area, plot_case, station_pair, date_lst,
 
 files_list, pair_list = scan_files(project_path)
 
-save_path = "img"
+save_path = os.path.join(project_path, "img")
 
 # ========================================================
 # Plot individual station pairs
@@ -383,7 +382,6 @@ for pair in pair_list:
     for plot_case in plot_case_lst:
 
         plot_dvv(
-            study_area,
             plot_case,
             pair,
             date_lst,
@@ -416,7 +414,6 @@ if result is not None:
     for plot_case in plot_case_lst:
 
         plot_dvv(
-            study_area,
             plot_case,
             "ALL",
             date_lst,
