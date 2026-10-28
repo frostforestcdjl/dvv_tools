@@ -36,6 +36,20 @@ parser.add_argument(
     default=False,
     help="Reverse y-axis or not"
 )
+parser.add_argument(
+    "--event_groups",
+    type=int,
+    nargs="+",
+    default=None,
+    help="Event groups to plot (e.g., --event_groups 17 20 26). "
+         "Default: all groups."
+)
+parser.add_argument(
+    "--exclude_stations",
+    default=None,
+    help="The station list excluded in the summation plot."
+)
+
 
 args = parser.parse_args()
 
@@ -43,6 +57,7 @@ args = parser.parse_args()
 project_path = args.project_path
 moving_average = args.moving_average
 reverse_y = args.reverse_y
+exclude_stations_file = args.exclude_stations
 
 # ========================================================
 # Read earthquake configuration
@@ -84,7 +99,7 @@ def read_event_list(config_path):
 # Load earthquake catalog and calculate distances
 # ========================================================
 
-def load_event_catalog(event_file, center_lat, center_long):
+def load_event_catalog(event_file, center_lat, center_long, groups=None):
 
     # Read earthquake catalog
     events = pd.read_csv(event_file)
@@ -113,6 +128,10 @@ def load_event_catalog(event_file, center_lat, center_long):
     # Add distance to catalog
     events["distance_km"] = distance
 
+    # Filter events by group
+    if groups is not None:
+        events = events[events["group"].isin(groups)]
+
     # Extract information
     event_time = pd.to_datetime(events["time"]).to_numpy()
     event_distance = events["distance_km"].to_numpy()
@@ -126,7 +145,7 @@ def load_event_catalog(event_file, center_lat, center_long):
 # ========================================================
 
 event_file, center_lat, center_long = read_event_list(args.event_list)
-event_pack = load_event_catalog(event_file, center_lat, center_long)
+event_pack = load_event_catalog(event_file, center_lat, center_long, groups=args.event_groups)
 
 def scan_files(project_path):
     files_set = set()
@@ -182,7 +201,16 @@ def load_msnoise_DVV(files_list, moving_average=30):
     df_list = []
 
     for file in files_list:
-
+        file_seg_list = file.split('/')
+        for file_seg in file_seg_list:
+            if 'DAYS' in file_seg:
+                file_seg_tmp = file_seg
+                if 'pm' in file_seg_tmp:
+                    file_seg_tmp = file_seg_tmp.replace('pm', '').replace('_DAYS', '')
+                    day_adjust = int(file_seg_tmp)
+                else:
+                    file_seg_tmp = file_seg_tmp.replace('_DAYS', '')
+                    day_adjust = int(file_seg_tmp)//2
         try:
             df = pd.read_csv(file)
 
@@ -263,12 +291,14 @@ def load_msnoise_DVV(files_list, moving_average=30):
     M_lst_smooth = df_avg["M_smooth"].to_numpy()
     M0_lst_smooth = df_avg["M0_smooth"].to_numpy()
 
-    return date_lst, M_lst, M0_lst, M_lst_smooth, M0_lst_smooth
+    return date_lst, M_lst, M0_lst, M_lst_smooth, M0_lst_smooth, day_adjust
 
 def plot_dvv(plot_case, station_pair, date_lst,
              M_lst, M0_lst, M_lst_smooth, M0_lst_smooth,
-             moving_average, event_pack=(), reverse_y=False, save_path=''):
+             moving_average, day_adjust, event_pack=(), reverse_y=False, save_path=''):
 
+    date_lst = date_lst + np.timedelta64(day_adjust, "D")
+    # fig, ax = plt.subplots(figsize=(6, 4))
     fig, ax = plt.subplots(figsize=(12, 4))
 
     if plot_case == 'M':
@@ -377,7 +407,7 @@ for pair in pair_list:
     if result is None:
         continue
 
-    date_lst, M_lst, M0_lst, M_lst_smooth, M0_lst_smooth = result
+    date_lst, M_lst, M0_lst, M_lst_smooth, M0_lst_smooth, day_adjust = result
 
     for plot_case in plot_case_lst:
 
@@ -390,6 +420,7 @@ for pair in pair_list:
             M_lst_smooth,
             M0_lst_smooth,
             moving_average,
+            day_adjust,
             event_pack,
             reverse_y=reverse_y,
             save_path=save_path
@@ -399,17 +430,28 @@ for pair in pair_list:
 # ========================================================
 # Plot average dv/v across all station pairs
 # ========================================================
+if exclude_stations_file:
+    with open(exclude_stations_file, "r") as f:
+        exclude_stations_list = [line.strip() for line in f if line.strip()]
+    print(f"Exclude stations for regional dv/v: {exclude_stations_list}")
+    files_list_target_pair = [
+        f for f in files_list
+        if all(station not in f for station in exclude_stations_list)
+    ]
+else:
+    files_list_target_pair = files_list
 
-print("\nProcessing all station pairs")
+print(f"\nProcessing all station pairs within {files_list_target_pair}")
 
 result = load_msnoise_DVV(
-    files_list,
+    files_list_target_pair,
     moving_average=moving_average
 )
 
+
 if result is not None:
 
-    date_lst, M_lst, M0_lst, M_lst_smooth, M0_lst_smooth = result
+    date_lst, M_lst, M0_lst, M_lst_smooth, M0_lst_smooth, day_adjust = result
 
     for plot_case in plot_case_lst:
 
@@ -422,6 +464,7 @@ if result is not None:
             M_lst_smooth,
             M0_lst_smooth,
             moving_average,
+            day_adjust,
             event_pack,
             reverse_y=reverse_y,
             save_path=save_path
