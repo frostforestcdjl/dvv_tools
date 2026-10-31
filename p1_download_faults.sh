@@ -52,7 +52,12 @@ rm -f "$ZIP_FILE"
 echo "ZIP file removed."
 
 # ============================================================
-# 5. Finished
+# 5. Download station scanner
+# ============================================================
+curl -fL -o $OUTPUT_DIR_SCRIPT/p1_scan_available_stations.py "https://raw.githubusercontent.com/frostforestcdjl/download_data_italy/main/p1_scan_available_stations.py"
+
+# ============================================================
+# 6. Finished
 # ============================================================
 
 echo "============================================================"
