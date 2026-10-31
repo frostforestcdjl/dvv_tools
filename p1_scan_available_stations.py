@@ -104,15 +104,17 @@ print(f"Selected legend position: {legend_position}")
 # 2. Configuration
 # ============================================================
 
-base_dir = Path(__file__).resolve().parent
+script_dir = Path(__file__).resolve().parent
 
-output_dir = base_dir / "station_search"
+base_dir = script_dir.parent
+
+output_dir = base_dir / "results" / "00_station_search"
 output_dir.mkdir(parents=True, exist_ok=True)
 
 fault_file = (
     base_dir
+    / "data_geo"
     / "faults"
-    / "Qfaults_GIS"
     / "SHP"
     / "Qfaults_US_Database.shp"
 )
