@@ -180,8 +180,13 @@ def plot(rows, output, start, end, rows_per_page, dpi, title):
         suffix = (
             f" — page {page_number + 1}/{page_count}" if page_count > 1 else ""
         )
-        axis.set_title(title + suffix)
-
+        if earliest is not None and latest is not None:
+            date_range = f" ({earliest.isoformat()} to {latest.isoformat()})"
+        else:
+            date_range = " (no available days)"
+        
+        axis.set_title(title + date_range + suffix)
+        
         destination = (
             output if page_count == 1 else output.with_name(
                 f"{output.stem}_{page_number + 1:03d}.png"
