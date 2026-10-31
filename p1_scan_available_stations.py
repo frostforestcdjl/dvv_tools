@@ -36,6 +36,38 @@ if endtime < starttime:
     raise ValueError("End date must not precede start date.")
 
 # ============================================================
+# Network selection
+# ============================================================
+
+print("\nSelect seismic networks:")
+print("Enter network codes separated by commas.")
+print("Examples:")
+print("  CI")
+print("  CI,NC,BK")
+print("  ALL (default)")
+
+network_input = input(
+    "\nNetworks (default=ALL): "
+).strip().upper()
+
+if network_input in ["", "ALL", "*"]:
+    selected_networks = ["*"]
+else:
+    selected_networks = list(dict.fromkeys(
+        net.strip()
+        for net in network_input.split(",")
+        if net.strip()
+    ))
+
+    if not selected_networks:
+        raise ValueError("No valid network codes provided.")
+
+print(
+    "Selected networks: "
+    + ", ".join(selected_networks)
+)
+
+# ============================================================
 # Legend position
 # ============================================================
 
@@ -124,6 +156,7 @@ MAP_DPI = 300
 print("\nSearching seismic stations...")
 
 inventory = client.get_stations(
+    network=",".join(selected_networks),
     starttime=starttime,
     endtime=endtime,
     minlatitude=minlatitude,
@@ -176,6 +209,61 @@ df = df.sort_values(
 
 print(f"Total stations: {len(df)}")
 
+# ============================================================
+# Assign colors to seismic networks
+# ============================================================
+
+# Get unique network codes
+networks = sorted(df["network"].unique())
+
+# Bright network colors
+preferred_network_colors = {
+    "BK": "#0080FF",  # Bright blue
+    "AZ": "#FF4500",  # Orange-red
+    "NC": "#00E676",  # Bright green
+    "CE": "#FF00FF",  # Magenta
+    "CI": "#FFD600",  # Bright yellow
+    "NN": "#00FFFF",  # Cyan
+    "PB": "#FF69B4",  # Hot pink
+    "WR": "#9D4EDD",  # Bright purple
+}
+
+# Additional colors for other networks
+additional_colors = [
+    "#FF1744",  # Bright red
+    "#00BFFF",  # Deep sky blue
+    "#76FF03",  # Lime green
+    "#FF9100",  # Bright orange
+    "#E040FB",  # Light purple
+    "#00E5FF",  # Electric cyan
+    "#FFEA00",  # Vivid yellow
+    "#F50057",  # Bright pink
+]
+
+network_colors = {}
+
+color_index = 0
+
+for network in networks:
+
+    if network in preferred_network_colors:
+        network_colors[network] = preferred_network_colors[network]
+
+    else:
+        network_colors[network] = additional_colors[
+            color_index % len(additional_colors)
+        ]
+        color_index += 1
+
+print("\nNetwork colors:")
+
+for network, color in network_colors.items():
+    n_stations = (df["network"] == network).sum()
+
+    print(
+        f"  {network}: {color} "
+        f"({n_stations} stations)"
+    )
 
 # ============================================================
 # 4. Save station list
@@ -190,6 +278,33 @@ df.to_csv(
 
 print(f"Station list saved: {csv_file}")
 
+# ------------------------------------------------------------
+# Save network colors
+# ------------------------------------------------------------
+
+network_color_file = output_dir / "network_colors.csv"
+
+df_network_colors = pd.DataFrame(
+    [
+        {
+            "network": network,
+            "color": network_colors[network],
+            "n_stations": int(
+                (df["network"] == network).sum()
+            ),
+        }
+        for network in networks
+    ]
+)
+
+df_network_colors.to_csv(
+    network_color_file,
+    index=False
+)
+
+print(
+    f"Network colors saved: {network_color_file}"
+)
 
 # ============================================================
 # 5. Automatically select topography resolution
@@ -374,6 +489,8 @@ pygmt.config(
     FONT_TITLE="12p,Helvetica-Bold,black",
     FONT_LABEL="10p,Helvetica,black",
     FONT_ANNOT_PRIMARY="9p,Helvetica,black",
+    FORMAT_GEO_MAP="ddd.xx",
+    # MAP_DEGREE_SYMBOL="none",
 )
 
 fig = pygmt.Figure()
@@ -462,16 +579,32 @@ fig.coast(
 
 
 # ------------------------------------------------------------
-# 8.5 Plot seismic stations
+# 8.5 Plot seismic stations by network
 # ------------------------------------------------------------
 
-fig.plot(
-    x=df["longitude"],
-    y=df["latitude"],
-    style=f"t{STATION_SYMBOL_SIZE}",
-    fill=STATION_COLOR,
-    pen=f"{STATION_EDGE_WIDTH}p,{STATION_EDGE_COLOR}",
-)
+print("\nPlotting seismic stations by network...")
+
+for network in networks:
+
+    df_network = df[
+        df["network"] == network
+    ]
+
+    color = network_colors[network]
+
+    fig.plot(
+        x=df_network["longitude"],
+        y=df_network["latitude"],
+        style=f"t{STATION_SYMBOL_SIZE}",
+        fill=color,
+        pen=f"{STATION_EDGE_WIDTH}p,{STATION_EDGE_COLOR}",
+    )
+
+    print(
+        f"Network {network}: "
+        f"{len(df_network)} stations, "
+        f"color={color}"
+    )
 
 
 # ------------------------------------------------------------
@@ -496,22 +629,49 @@ for _, row in df.iterrows():
 from io import StringIO
 
 # ------------------------------------------------------------
-# Legend
+# 8.7 Legend
 # ------------------------------------------------------------
 
-legend_spec = f"""
-S 0.10c - 0.4c - {FAULT_WIDTH}p,{FAULT_COLOR} 0.5c Fault
-G 0.02c
-S 0.10c t {STATION_SYMBOL_SIZE} {STATION_COLOR} {STATION_EDGE_WIDTH}p,{STATION_EDGE_COLOR} 0.5c Seismic station
-"""
+# Fault legend
+legend_lines = [
+    f"S 0.10c - 0.4c - {FAULT_WIDTH}p,{FAULT_COLOR} 0.5c Fault",
+]
 
+# Network legends
+for network in networks:
+
+    color = network_colors[network]
+
+    legend_lines.append(
+        "G 0.02c"
+    )
+
+    legend_lines.append(
+        f"S 0.10c t {STATION_SYMBOL_SIZE} "
+        f"{color} "
+        f"{STATION_EDGE_WIDTH}p,{STATION_EDGE_COLOR} "
+        f"0.5c {network}"
+    )
+
+legend_spec = "\n".join(legend_lines) + "\n"
+
+# Save legend specification
 legend_file = output_dir / "legend.txt"
-legend_file.write_text(legend_spec.strip() + "\n")
 
-with pygmt.config(FONT_ANNOT_PRIMARY="9p,Helvetica,black"):
+legend_file.write_text(legend_spec)
+
+# Plot legend
+with pygmt.config(
+    FONT_ANNOT_PRIMARY="9p,Helvetica,black"
+):
     fig.legend(
         spec=str(legend_file),
-        position=f"j{legend_position}+j{legend_position}+o0.2c+w2.9c",
+        position=(
+            f"j{legend_position}"
+            f"+j{legend_position}"
+            f"+o0.2c"
+            f"+w2.9c"
+        ),
         box="+gwhite+p0.8p,black+c0.05c",
     )
 
