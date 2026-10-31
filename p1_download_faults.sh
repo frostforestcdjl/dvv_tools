@@ -12,7 +12,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 URL="https://earthquake.usgs.gov/static/lfs/nshm/qfaults/Qfaults_GIS.zip"
 
 # Output directories
-OUTPUT_DIR="$SCRIPT_DIR/faults"
+OUTPUT_DIR="$SCRIPT_DIR/data_geo/faults"
 ZIP_FILE="$OUTPUT_DIR/Qfaults_GIS.zip"
 
 # ============================================================
