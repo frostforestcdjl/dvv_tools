@@ -68,6 +68,27 @@ print(
 )
 
 # ============================================================
+# FDSN client selection
+# ============================================================
+
+print("\nSelect FDSN client:")
+print("Examples:")
+print("  EARTHSCOPE (default)")
+print("  NCEDC")
+print("  SCEDC")
+print("  USGS")
+print("  IRIS")
+print("  https://webservices.ingv.it")
+
+client_input = input(
+    "\nFDSN client (default=EARTHSCOPE): "
+).strip()
+
+client_name = client_input.upper() if client_input else "EARTHSCOPE"
+
+print(f"Selected FDSN client: {client_name}")
+
+# ============================================================
 # Legend position
 # ============================================================
 
@@ -119,7 +140,19 @@ fault_file = (
     / "Qfaults_US_Database.shp"
 )
 
-client = Client("EARTHSCOPE")
+# ============================================================
+# Initialize FDSN client
+# ============================================================
+
+try:
+    client = Client(client_name, timeout=60)
+
+except Exception as e:
+    raise RuntimeError(
+        f"Failed to initialize FDSN client '{client_name}': {e}"
+    ) from e
+
+print(f"Connected to FDSN client: {client_name}")
 
 minlatitude = min(lat_top, lat_bottom)
 maxlatitude = max(lat_top, lat_bottom)
