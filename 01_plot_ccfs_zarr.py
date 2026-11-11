@@ -125,7 +125,12 @@ filter_list = get_dirs(stack_folder)
 
 for filter_name in filter_list:
     filter_folder = os.path.join(stack_folder, filter_name)
-    stack_day_list = get_dirs(filter_folder)
+    # Only process daily stacked CCF folders
+    stack_day_list = [
+        name
+        for name in get_dirs(filter_folder)
+        if name.endswith("_DAYS")
+    ]
     for stack_day in stack_day_list:
         stack_day_folder = os.path.join(filter_folder, stack_day)
         component_list = get_dirs(stack_day_folder)
