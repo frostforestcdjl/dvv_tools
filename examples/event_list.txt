@@ -1,0 +1,3 @@
+event_file='MtEtna.csv'
+center_lat=37.75
+center_long=15
