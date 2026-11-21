@@ -12,4 +12,6 @@ curl -fL -o 02_plot_mwcs_txt.py "https://raw.githubusercontent.com/frostforestcd
 curl -fL -o 03_load_dtt_plot_dvv.ipynb "https://raw.githubusercontent.com/frostforestcdjl/download_data_italy/main/03_load_dtt_plot_dvv.ipynb"
 curl -fL -o 04_plot_dvv.py "https://raw.githubusercontent.com/frostforestcdjl/download_data_italy/main/04_plot_dvv.py"
 
+curl -fL -o 03a_convert_dtt_to_dvv.py "https://raw.githubusercontent.com/frostforestcdjl/download_data_italy/main/03a_convert_dtt_to_dvv.py"
+
 python 00_download_mseed_italy.py
