@@ -14,4 +14,13 @@ curl -fL -o 04_plot_dvv.py "https://raw.githubusercontent.com/frostforestcdjl/do
 
 curl -fL -o 03a_convert_dtt_to_dvv.py "https://raw.githubusercontent.com/frostforestcdjl/download_data_italy/main/03a_convert_dtt_to_dvv.py"
 
+# --- downlaod examples folder ---
+git clone --depth 1 --filter=blob:none --sparse \
+  https://github.com/frostforestcdjl/download_data_italy.git /tmp/download_data_italy
+  
+git -C /tmp/download_data_italy sparse-checkout set examples
+cp -r /tmp/download_data_italy/examples .
+rm -rf /tmp/download_data_italy
+
+# --- download data ---
 python 00_download_mseed_italy.py
